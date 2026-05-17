@@ -1,10 +1,10 @@
 replicaCount: 1
 image:
-  repository: kylib4444
+  repository: ghcr.io/kylib4444/kbot_my
   tag: "v1.0.0-1e4b3ec-linux-amd64"
   arch: amd64
 secret:
-  name: kbot
+  name: kbot_my
   tokenKey: token
   tokenName: TELE_TOKEN
 service:
