@@ -1,0 +1,66 @@
+name: KBOT-CICD
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }} 
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Debug Variables
+        run: echo "Registry is ${{ env.REGISTRY }} and Owner is ${{ github.repository_owner }}"
+
+      - name: Run test
+        run: make test
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push
+        run: make image push
+  
+  cd:
+    name: CD
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Update Image Tag in Helm Chart
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")-$(git rev-parse --short HEAD)
+          TAG="${VERSION}-linux-amd64"
+          yq -i ".image.tag = \"$TAG\"" helm/values.yaml
+          
+      - name: Commit and Push changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add helm/values.yaml
+          git commit -m "chore: update kbot image tag to ${{ github.sha }}"
+          git push

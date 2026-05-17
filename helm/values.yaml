@@ -1,0 +1,15 @@
+replicaCount: 1
+image:
+  repository: kylib4444
+  tag: "v1.0.0-1e4b3ec-linux-amd64"
+  arch: amd64
+secret:
+  name: kbot
+  tokenKey: token
+  tokenName: TELE_TOKEN
+service:
+  type: ClusterIP
+  port: 80
+serviceAccount:
+  create: false
+  name: ""
