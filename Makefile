@@ -1,7 +1,7 @@
 # Makefile for kbot project
 REGISTRY ?= ghcr.io
 USERNAME ?= kylib4444
-APP := kbot
+APP := kbot_my
 # Application name and registry configuration
 # APP := $(shell basename $(shell git remote get-url origin))
 VERSION := $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")-$(shell git rev-parse --short HEAD)
@@ -65,7 +65,7 @@ lint: install-lint
 # Run tests
 test:
 	@echo "Running tests..."
-	@go test -v -cover ./...
+	@go test -v ./...
 
 # Get dependencies
 get:
