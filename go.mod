@@ -1,4 +1,4 @@
-module github.com/kylib4444/kbot_my
+module github.com/den-vasyliev/kbot
 
 go 1.26.2
 
