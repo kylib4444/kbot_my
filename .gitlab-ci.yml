@@ -1,0 +1,24 @@
+stages:
+  - build
+
+variables:
+  APP_NAME: "kbot"
+  DOCKER_REPO: "ghcr.io/kylib4444/kbot_my"
+
+build_job:
+  stage: build
+  # Використовуємо образ з Go, щоб працювали команди збірки
+  image: golang:1.23
+  parallel:
+    matrix:
+      - ARCH: ["amd64", "arm64"]
+        OS: ["linux", "windows", "darwin"]
+  script:
+    - echo "Збірка для $OS на архітектурі $ARCH"
+    # Логіка збірки: передаємо змінні середовища для крос-компіляції Go
+    - GOOS=$OS GOARCH=$ARCH go build -v -o ./bin/${APP_NAME}_${OS}_${ARCH}
+    - echo "Файл зібрано успішно: ./bin/${APP_NAME}_${OS}_${ARCH}"
+    - echo "Імітація пушу образу в $DOCKER_REPO:$OS-$ARCH"
+  artifacts:
+    paths:
+      - ./bin/
