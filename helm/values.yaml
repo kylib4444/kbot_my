@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   registry: "ghcr.io"
   repository: "kylib4444/kbot_my"
-  tag: "v1.0.0-8050b35"
+  tag: "v1.0.0-d8a0842-linux-amd64"
   os: linux
   arch: amd64
 secret:
