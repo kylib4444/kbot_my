@@ -15,6 +15,12 @@ build_job:
         OS: ["linux", "windows", "darwin"]
   script:
     - echo "Збірка для $OS на архітектурі $ARCH"
+    - |
+      if [ "$OS" = "windows" ]; then
+        EXTENSION=".exe"
+      else
+        EXTENSION=""
+      fi
     - GOOS=$OS GOARCH=$ARCH go build -v -o ./bin/${APP_NAME}_${OS}_${ARCH}
     - echo "Файл зібрано успішно:./bin/${APP_NAME}_${OS}_${ARCH}"
     - echo "Імітація пушу образу в $DOCKER_REPO:$OS-$ARCH"
