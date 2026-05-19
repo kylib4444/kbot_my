@@ -15,9 +15,8 @@ build_job:
         OS: ["linux", "windows", "darwin"]
   script:
     - echo "Збірка для $OS на архітектурі $ARCH"
-    # Логіка збірки: передаємо змінні середовища для крос-компіляції Go
     - GOOS=$OS GOARCH=$ARCH go build -v -o ./bin/${APP_NAME}_${OS}_${ARCH}
-    - echo "Файл зібрано успішно: ./bin/${APP_NAME}_${OS}_${ARCH}"
+    - echo "Файл зібрано успішно:./bin/${APP_NAME}_${OS}_${ARCH}"
     - echo "Імітація пушу образу в $DOCKER_REPO:$OS-$ARCH"
   artifacts:
     paths:
