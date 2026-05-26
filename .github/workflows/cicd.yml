@@ -54,7 +54,7 @@ jobs:
       - name: Update Image Tag in Helm Chart
         run: |
           VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")-$(git rev-parse --short HEAD)
-          TAG="${VERSION}-linux-amd64"
+          TAG="${VERSION}"
           yq -i ".image.tag = \"$TAG\"" helm/values.yaml
           
       - name: Commit and Push changes
