@@ -1,0 +1,81 @@
+name: Generate Encrypted Secret via SOPS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'helm/**' # Пайплайн запускається при зміні чарту або вручну
+
+permissions:
+  contents: 'read'
+  id-token: 'write'
+
+env:
+  GCP_PROJECT: "k8s-lab-5-2"
+  WIF_PROVIDER: "projects/837314075510/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider"
+  GCP_SA: "github-actions-sa@k8s-lab-5-2.iam.gserviceaccount.com"
+  KMS_KEY: "projects/k8s-lab-5-2/locations/us-central1/keyRings/flux-sops-keyring/cryptoKeys/flux-sops-key"
+  GITOPS_REPO: "kylib4444/flux-gitops-config"
+
+jobs:
+  sops-generation:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Application Repo
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud via WIF
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ env.WIF_PROVIDER }}
+        service_account: ${{ env.GCP_SA }}
+
+    - name: Setup Gcloud CLI
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Install SOPS
+      run: |
+        SOPS_VERSION=$(curl -s https://api.github.com/repos/mozilla/sops/releases/latest | jq -r '.name')
+        wget -q https://github.com/mozilla/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.amd64 -O sops
+        chmod +x sops
+        sudo mv sops /usr/local/bin/
+
+    - name: Fetch Secret from GCP Secret Manager
+      id: secrets
+      run: |
+        TOKEN=$(gcloud secrets versions access latest --secret="tele-token")
+        echo "::add-mask::$TOKEN"
+        echo "tele_token=$TOKEN" >> $GITHUB_OUTPUT
+
+    - name: Create Unencrypted K8s Secret Manifest
+      run: |
+        kubectl create secret generic kbot \
+          --namespace=default \
+          --from-literal=token="${{ steps.secrets.outputs.tele_token }}" \
+          --dry-run=client -o yaml > secret.yaml
+
+    - name: Encrypt Secret via SOPS & KMS
+      run: |
+        sops -e \
+          --gcp-kms ${{ env.KMS_KEY }} \
+          --encrypted-regex '^(data|stringData)$' \
+          secret.yaml > secret-encrypted.yaml
+
+    - name: Checkout GitOps Config Repo
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ env.GITOPS_REPO }}
+        token: ${{ secrets.GITOPS_PUSH_TOKEN }} # Твій GitHub Personal Access Token (PAT) з правами на репозиторій конфігів (поклади в Secrets репозиторія kbot)
+        path: gitops-config
+
+    - name: Commit and Push Encrypted Secret to GitOps Repo
+      run: |
+        mkdir -p gitops-config/clusters/
+        cp secret-encrypted.yaml gitops-config/clusters/kbot-secret-encrypted.yaml
+        cd gitops-config
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add clusters/kbot-secret-encrypted.yaml
+        git commit -m "automation: update encrypted kbot secret via CI/CD" || exit 0
+        git push origin main
